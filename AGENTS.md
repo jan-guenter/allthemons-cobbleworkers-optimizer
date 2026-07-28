@@ -171,7 +171,8 @@ where species matching is involved.
    bundled.
 5. Run the required dedicated-server, unmodified-client, job-family, and Spark
    staging checks; record only results actually observed.
-6. Commit and push `main`.
+6. Commit and merge through a pull request. The version-policy workflow
+   requires a greater stable `x.y.z` `mod_version`.
 7. Create and push tag `v<mod_version>` exactly.
 8. Confirm the release workflow repeats checks, publishes the `mod` Maven
    publication, generates SHA-256 checksums, and creates the GitHub Release.

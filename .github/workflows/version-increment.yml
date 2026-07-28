@@ -25,24 +25,25 @@ jobs:
             | sed -n 's/^mod_version=//p')"
           head_version="$(sed -n 's/^mod_version=//p' gradle.properties)"
 
-          if [[ -z "${base_version}" || -z "${head_version}" ]]; then
-            echo "Unable to read mod_version from gradle.properties." >&2
-            exit 1
-          fi
+          python3 - "${base_version}" "${head_version}" <<'PY'
+          import re
+          import sys
 
-          if [[ "${base_version}" == "${head_version}" ]]; then
-            echo "mod_version must be increased from ${base_version}." >&2
-            exit 1
-          fi
-
-          highest="$(printf '%s\n%s\n' "${base_version}" "${head_version}" \
-            | sort -V | tail -n 1)"
-          if [[ "${highest}" != "${head_version}" ]]; then
-            echo "mod_version must increase; ${head_version} is not newer than ${base_version}." >&2
-            exit 1
-          fi
-
-          echo "mod_version increased from ${base_version} to ${head_version}."
+          pattern = re.compile(
+              r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+          )
+          base, head = sys.argv[1:3]
+          if pattern.fullmatch(base) is None or pattern.fullmatch(head) is None:
+              raise SystemExit(
+                  "Versions must be stable SemVer x.y.z values: "
+                  f"base={base}, head={head}"
+              )
+          if tuple(map(int, head.split("."))) <= tuple(map(int, base.split("."))):
+              raise SystemExit(
+                  f"mod_version must increase: base={base}, head={head}"
+              )
+          print(f"mod_version increased from {base} to {head}")
+          PY
 
       - name: Comment when the version was not increased
         if: failure() && steps.version.outcome == 'failure'
