@@ -1,0 +1,202 @@
+plugins {
+    id 'java-library'
+    id 'checkstyle'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.140'
+}
+
+group = mod_group_id
+version = mod_version
+
+base {
+    archivesName = mod_artifact_id
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+neoForge {
+    version = '21.1.234'
+
+    mods {
+        atmons_cobbleworkers_optimizer {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'ImpactDev'
+        url = 'https://maven.impactdev.net/repository/development/'
+        content {
+            includeGroup 'com.cobblemon'
+        }
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    }
+}
+
+dependencies {
+    // The Modrinth version ID is intentional: the human version is shared by
+    // Fabric and NeoForge, while zigPFURt resolves the exact NeoForge JAR.
+    compileOnly('maven.modrinth:cobbleworkers:zigPFURt') {
+        transitive = false
+    }
+    compileOnly('com.cobblemon:neoforge:1.7.3+1.21.1') {
+        transitive = false
+    }
+    compileOnly 'org.jetbrains.kotlin:kotlin-stdlib:2.1.21'
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    def values = [
+        mod_id: mod_id,
+        mod_name: mod_name,
+        mod_version: mod_version
+    ]
+    inputs.properties(values)
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand(values)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+}
+
+checkstyle {
+    toolVersion = '10.18.2'
+    configFile = file('config/checkstyle/checkstyle.xml')
+}
+
+tasks.withType(Checkstyle).configureEach {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest.attributes('MixinConfigs': 'atmons_cobbleworkers_optimizer.mixins.json')
+    from('LICENSE') {
+        rename { 'META-INF/LICENSE_atmons_cobbleworkers_optimizer' }
+    }
+}
+
+def productionJar = tasks.named('jar', Jar).flatMap { it.archiveFile }
+
+tasks.register('verifyProductionJar') {
+    group = 'verification'
+    description = 'Checks the production JAR layout and server-only surface.'
+    dependsOn tasks.named('jar')
+    inputs.file(productionJar)
+
+    doLast {
+        def jarFile = productionJar.get().asFile
+        def zipFile = new java.util.zip.ZipFile(jarFile)
+        try {
+            def entries = zipFile.entries()
+                    .findAll { !it.directory }
+                    .collect { it.name }
+            def requiredEntries = [
+                'META-INF/MANIFEST.MF',
+                'META-INF/LICENSE_atmons_cobbleworkers_optimizer',
+                'META-INF/neoforge.mods.toml',
+                'atmons_cobbleworkers_optimizer.mixins.json'
+            ]
+            def missingEntries = requiredEntries.findAll { !entries.contains(it) }
+            if (!missingEntries.isEmpty()) {
+                throw new GradleException(
+                        "Production JAR is missing required entries: ${missingEntries}")
+            }
+
+            def projectClassPrefix = 'io/github/janguenter/atmons/cobbleworkers/'
+            def unexpectedEntries = entries.findAll {
+                boolean projectClass = it.startsWith(projectClassPrefix)
+                        && it.endsWith('.class')
+                        && !it.contains('/client/')
+                !(it in requiredEntries) && !projectClass
+            }
+            if (!unexpectedEntries.isEmpty()) {
+                throw new GradleException(
+                        "Production JAR contains unexpected entries: ${unexpectedEntries}")
+            }
+
+            def productionClasses = entries.findAll {
+                it.startsWith(projectClassPrefix) && it.endsWith('.class')
+            }
+            if (productionClasses.isEmpty()) {
+                throw new GradleException('Production JAR contains no project classes')
+            }
+        } finally {
+            zipFile.close()
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('verifyProductionJar')
+}
+
+publishing {
+    publications {
+        mod(MavenPublication) {
+            from components.java
+            artifactId = mod_artifact_id
+
+            pom {
+                name = mod_name
+                description = 'Server-only decision scheduler and diagnostics for Cobbleworkers in All the Mons'
+                url = 'https://github.com/jan-guenter/allthemons-cobbleworkers-optimizer'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/license/mit'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'jan-guenter'
+                        name = 'Jan Guenter'
+                        url = 'https://github.com/jan-guenter'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/jan-guenter/allthemons-cobbleworkers-optimizer.git'
+                    developerConnection =
+                        'scm:git:ssh://git@github.com/jan-guenter/allthemons-cobbleworkers-optimizer.git'
+                    url = 'https://github.com/jan-guenter/allthemons-cobbleworkers-optimizer'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/jan-guenter/allthemons-cobbleworkers-optimizer')
+            credentials {
+                username = System.getenv('GITHUB_ACTOR')
+                password = System.getenv('GITHUB_TOKEN')
+            }
+        }
+    }
+}
