@@ -11,7 +11,7 @@ authors = "Jan Guenter"
 displayURL = "https://github.com/jan-guenter/allthemons-cobbleworkers-optimizer"
 description = '''
 Server-only high-level decision scheduling and diagnostics for the exact
-Cobbleworkers stack shipped by All the Mons 1.1.1.
+Cobbleworkers stack shipped by All the Mons 1.2.0.
 '''
 
 [[mixins]]
@@ -20,7 +20,7 @@ config = "atmons_cobbleworkers_optimizer.mixins.json"
 [[dependencies.${mod_id}]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21.1.234,21.2)"
+versionRange = "[21.1.248,21.2)"
 ordering = "NONE"
 side = "SERVER"
 
@@ -48,6 +48,6 @@ side = "SERVER"
 [[dependencies.${mod_id}]]
 modId = "allthemons"
 type = "required"
-versionRange = "[0.3.0]"
+versionRange = "[0.5.0]"
 ordering = "AFTER"
 side = "SERVER"

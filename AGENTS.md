@@ -8,12 +8,13 @@ not broaden its compatibility range or backport closed-source Cobbleworkers
 
 | Component | Version / evidence |
 | --- | --- |
-| All the Mons | `1.1.1`, pack commit `94a224acf6eace3edf7ea64e6033b458f5bda288` |
+| All the Mons | `1.2.0`, pack commit `c7bb230f21d14d26859d0b92548f089b3a493ad9` |
 | Minecraft | `1.21.1` |
-| NeoForge | `21.1.234` |
+| NeoForge | `21.1.248` |
 | Cobblemon | `1.7.3+1.21.1`, commit `e6fda6137e00cfe6035c863a3736ba30fc236696` |
 | Cobbleworkers | `1.8.0+1.7.0`, commit `2986bdeb76622f57cc8bd2c2fa203ef091ab4195` |
-| All The Mons core | `0.3.0` |
+| All The Mons core | `0.5.0` |
+| ModernFix | `5.27.20+mc1.21.1` with pack `stability_level=BETA` |
 
 Exact shipped SHA-256 values:
 
@@ -24,8 +25,11 @@ Cobblemon-neoforge-1.7.3+1.21.1.jar
 cobbleworkers-neoforge-1.8.0+1.7.0.jar
 fd766eb47efd1d2d310e1830fadeac25d338cb6b5e1cd6a31214bae27608c3cc
 
-allthemons-0.3.0.jar
-35ed3ef101b9c0b9fbe5843c7a6a3f62b40748f2b62ea14fd49ca494102a879e
+allthemons-0.5.0.jar
+b5ae8fa0d0e16d104e79d71b085dc64f3f00b845cd5f1dba21f91e7a686683c6
+
+modernfix-neoforge-5.27.20+mc1.21.1.jar
+6f367ea4002c39e3cfe27e0a0be1008880a4b35a8482a78a437cfb9d8ee38273
 ```
 
 The `maven.modrinth:cobbleworkers:zigPFURt` build dependency is intentional.
@@ -73,7 +77,9 @@ stock pass-through.
 
 ## All The Mons core composition
 
-The exact 0.3.0 bytecode was audited:
+The exact 0.5.0 bytecode was audited and decompiled against 0.3.0. The three
+Cobbleworkers Mixins and three pack worker implementations are semantically
+identical across the two JARs:
 
 - `MixinWorkerDispatcher` uses `ModifyExpressionValue` on the
   `CollectionsKt.listOf` call in `WorkerDispatcher.<clinit>` and appends new
@@ -84,8 +90,14 @@ The exact 0.3.0 bytecode was audited:
   `findClosestInventory`, and `handleDepositing`. Its tag-backed inventory set
   excludes the Cobblemon Pasture block.
 - `MixinPokemonPastureBlockEntity` injects at return from `checkPokemon` for
-  breeding/drop work and also persists `breedCooldown` in
-  `saveAdditional`/`loadAdditional`.
+  breeding/drop work, persists `breedCooldown` in
+  `saveAdditional`/`loadAdditional`, and now guards the work so it runs only
+  for a Cobblemon Pasture. New tether-recovery/Pika Power Mixins target
+  Cobblemon handler and Pasture classes, not either optimizer target.
+
+The exact audit, manifest identities, configuration deltas, hashes, and source
+links live in `docs/compatibility/all-the-mons-1.2.0.md`. Read that record
+before changing any compatibility pin.
 
 Never shadow or rebuild the dispatcher worker list. The startup
 `CompatibilitySelfCheck` must continue to prove that the three exact custom
@@ -118,7 +130,7 @@ A safe dimension fix therefore cannot patch one map in isolation. It must
 cover every upstream caller, the three All The Mons jobs, lifecycle cleanup,
 and identical-coordinate multi-dimension tests.
 
-Version 0.1.0 therefore does not implement or claim cross-dimension upstream
+Version 0.1.1 therefore does not implement or claim cross-dimension upstream
 cache/scan/claim isolation or stale-claim cleanup.
 
 Species checks are spread across many job singleton implementations and use
@@ -146,8 +158,8 @@ Use Java 21 and the committed Gradle 8.10.2 wrapper:
 Inspect the production JAR, not the sources JAR:
 
 ```bash
-unzip -l build/libs/allthemons-cobbleworkers-optimizer-0.1.0.jar
-unzip -p build/libs/allthemons-cobbleworkers-optimizer-0.1.0.jar \
+unzip -l build/libs/allthemons-cobbleworkers-optimizer-0.1.1.jar
+unzip -p build/libs/allthemons-cobbleworkers-optimizer-0.1.1.jar \
   META-INF/neoforge.mods.toml
 ```
 

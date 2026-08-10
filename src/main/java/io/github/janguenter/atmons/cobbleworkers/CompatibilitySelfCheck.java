@@ -16,7 +16,7 @@ import net.minecraft.world.level.Level;
 
 /**
  * Runtime verification for the exact dispatcher contract and the three worker
- * implementations injected by All The Mons core 0.3.0.
+ * implementations injected by All The Mons core 0.5.0.
  */
 public final class CompatibilitySelfCheck {
     private static final Set<String> REQUIRED_PACK_WORKERS = Set.of(
