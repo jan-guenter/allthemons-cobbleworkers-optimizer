@@ -18,7 +18,7 @@ java {
 }
 
 neoForge {
-    version = '21.1.234'
+    version = '21.1.248'
 
     mods {
         atmons_cobbleworkers_optimizer {
