@@ -54,7 +54,7 @@ dependencies {
     compileOnly('com.cobblemon:neoforge:1.7.3+1.21.1') {
         transitive = false
     }
-    compileOnly 'org.jetbrains.kotlin:kotlin-stdlib:2.1.21'
+    compileOnly 'org.jetbrains.kotlin:kotlin-stdlib:2.4.21'
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
